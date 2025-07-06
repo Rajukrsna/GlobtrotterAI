@@ -54,9 +54,8 @@ To get a local copy up and running, follow these simple steps:
 
 1.  **Clone the repository:**
     ```bash
-    git clone 
+    git clone https://github.com/Rajukrsna/GlobtrotterAI.git
     ```
-    (Replace `[YOUR_REPOSITORY_URL]` with the actual URL of your GitHub repository once it's hosted.)
 2.  **Navigate to the backend project directory:**
     ```bash
     cd backend
