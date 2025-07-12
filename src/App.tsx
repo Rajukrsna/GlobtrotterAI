@@ -1,11 +1,9 @@
 import  { useState } from 'react';
 import ChatInterface from './components/ChatInterface';
 import ItineraryDisplay from './components/ItineraryDisplay';
-import DestinationPanel from './components/DestinationPanel';
-import { Message, TravelPlan, ConversationState, Destination } from './types';
-import { getRecommendedDestinations } from './data/destinations';
-import { generateItinerary } from './data/mockData';
+import { Message, TravelPlan, ConversationState } from './types';
 import { Globe, MapPin, Wallet, Compass, Loader2 } from "lucide-react";
+import axios from 'axios';
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -14,66 +12,57 @@ function App() {
   const [conversationState, setConversationState] = useState<ConversationState>({
     step: 'initial'
   });
-  const [recommendedDestinations, setRecommendedDestinations] = useState<Destination[]>([]);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
 
   const simulateAIResponse = async (userMessage: string, currentState: ConversationState): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 800));
     
     let assistantMessage: Message;
     let newState = { ...currentState };
 
     switch (currentState.step) {
       case 'initial':
-        // User described their travel wish
+        // User described their travel wish - now we generate the full plan
         newState = {
           ...currentState,
-          step: 'budget',
+          step: 'generating',
           travelWish: userMessage
         };
         
         assistantMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: `Perfect! I can see you're interested in "${userMessage}". To create the best recommendations for you, what's your travel budget? This will help me suggest destinations that match both your preferences and financial comfort zone.`,
+          content: `Perfect! I love your taste - "${userMessage}" sounds amazing! 🎯 Let me work my magic and create a personalized travel plan just for you. I'm analyzing your interests, finding taste-aligned destinations, and crafting the perfect itinerary. This might take a moment...`,
           timestamp: new Date(),
         };
+        
+        // Start generating the travel plan
+        setTimeout(() => generateTravelPlan(userMessage), 1000);
         break;
 
       case 'budget':
-        // User provided budget
-        const budget = parseInt(userMessage.replace(/[$,]/g, ''));
-        if (isNaN(budget)) {
-          assistantMessage = {
-            id: (Date.now() + 1).toString(),
-            role: 'assistant',
-            content: "I need a numeric budget to help you better. Please enter your budget as a number (e.g., 2000 for $2,000).",
-            timestamp: new Date(),
-          };
-          break;
-        }
-
-        const destinations = await getRecommendedDestinations(currentState.travelWish || '', budget, 6);
-        setRecommendedDestinations(destinations);
-        
+        // Handle budget if user provides it
         newState = {
           ...currentState,
-          step: 'destinations',
-          budget: budget
+          step: 'generating',
+          budget: parseInt(userMessage.replace(/[$,]/g, '')) || 2500
         };
         
         assistantMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: `Excellent! With a budget of $${budget.toLocaleString()}, I've found ${destinations.length} amazing destinations that match your preferences for "${currentState.travelWish}". Each destination is scored based on how well it matches your interests. Check out the recommendations on the right and click on your favorite to see the detailed itinerary!`,
+          content: `Got it! With your budget, I'm creating an amazing personalized itinerary. Using AI to match your tastes with perfect destinations and experiences...`,
           timestamp: new Date(),
         };
+        
+        setTimeout(() => generateTravelPlan(currentState.travelWish || userMessage, newState.budget), 1000);
         break;
 
-      case 'destinations':
+      case 'generating':
         assistantMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: "I can see you're exploring the destination options! Feel free to click on any destination card to select it and see your personalized itinerary. Each destination has been carefully matched to your preferences and budget.",
+          content: "I'm still working on your perfect trip! Analyzing your taste profile and matching it with amazing destinations...",
           timestamp: new Date(),
         };
         break;
@@ -82,7 +71,7 @@ function App() {
         assistantMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: "Your itinerary looks amazing! You can explore the interactive 3D map to see all your planned activities. Feel free to ask me any questions about your trip, or if you'd like to modify anything!",
+          content: "Your personalized itinerary is ready! 🗺️ Explore the interactive 3D map to see all your taste-aligned activities. Each recommendation is carefully selected based on your interests. Feel free to ask me any questions about your trip!",
           timestamp: new Date(),
         };
         break;
@@ -91,13 +80,62 @@ function App() {
         assistantMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: "I'm here to help you plan your perfect trip! Tell me about your travel preferences to get started.",
+          content: "I'm here to help you plan your perfect trip! Tell me about your interests, hobbies, or what you love - like 'I love BTS, Studio Ghibli, and ramen' - and I'll create a personalized travel experience just for you!",
           timestamp: new Date(),
         };
     }
 
     setMessages(prev => [...prev, assistantMessage]);
     setConversationState(newState);
+  };
+
+  const generateTravelPlan = async (userMessage: string, budget: number = 2500) => {
+    setIsGeneratingPlan(true);
+    
+    try {
+      console.log('Generating travel plan for:', userMessage);
+      
+      const response = await axios.post('http://localhost:3000/api/plan-trip', {
+        message: userMessage,
+        budget: budget
+      });
+
+      if (response.data.success) {
+        const { travelPlan } = response.data;
+        setCurrentPlan(travelPlan);
+        
+        // Update conversation state to show itinerary
+        setConversationState(prev => ({
+          ...prev,
+          step: 'itinerary'
+        }));
+
+        // Add success message
+        const successMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `🎉 Your personalized ${travelPlan.duration}-day trip to ${travelPlan.destination} is ready! I've crafted this itinerary based on your unique taste profile, featuring ${travelPlan.itinerary.reduce((total, day) => total + day.activities.length, 0)} carefully selected experiences. Total cost: $${travelPlan.costBreakdown.total.toLocaleString()}. Explore the 3D map to see your journey come to life!`,
+          timestamp: new Date(),
+        };
+        
+        setMessages(prev => [...prev, successMessage]);
+      }
+    } catch (error) {
+      console.error('Error generating travel plan:', error);
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: "I apologize, but I'm having trouble creating your travel plan right now. This might be due to API connectivity. Please make sure your Gemini and Qloo API keys are properly configured, or try again in a moment!",
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      setConversationState(prev => ({ ...prev, step: 'initial' }));
+    } finally {
+      setIsGeneratingPlan(false);
+      setIsLoading(false);
+    }
   };
 
   const handleSendMessage = async (message: string) => {
@@ -127,61 +165,6 @@ function App() {
     }
   };
 
-  const handleSelectDestination = async (destination: Destination) => {
-    // Add user selection message
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: `I choose ${destination.name}, ${destination.country}!`,
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, userMessage]);
-    setIsLoading(true);
-
-    try {
-      // Generate itinerary
-      const itinerary = await generateItinerary(destination.id, conversationState.budget || 2000);
-      setCurrentPlan(itinerary);
-
-      // Update conversation state
-      setConversationState({
-        ...conversationState,
-        step: 'itinerary',
-        selectedDestination: destination
-      });
-     
-      // Add assistant response
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: `Fantastic choice! ${destination.name} is perfect for your preferences. I've created a detailed ${itinerary.duration}-day itinerary with a 3D interactive map showing all your activities. Your trip includes ${itinerary.itinerary.reduce((total, day) => total + day.activities.length, 0)} carefully selected experiences within your $${conversationState.budget?.toLocaleString()} budget. Explore the 3D map to see your journey come to life!`,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-
-    } catch (error) {
-      console.error('Error generating itinerary:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const renderRightPanel = () => {
-    if (conversationState.step === 'destinations' && recommendedDestinations.length > 0) {
-      return (
-        <DestinationPanel
-          destinations={recommendedDestinations}
-          onSelectDestination={handleSelectDestination}
-          budget={conversationState.budget || 0}
-        />
-      );
-    }
-    
-    return <ItineraryDisplay travelPlan={currentPlan} />;
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-orange-50">
       {/* Header */}
@@ -196,7 +179,7 @@ function App() {
             </div>
             <div>
               <h1 className="text-2xl font-semibold tracking-wide">Globetrotter AI</h1>
-              <p className="text-xs text-white/80">Your Personalized Travel Wizard</p>
+              <p className="text-xs text-white/80">AI-Powered Taste-Based Travel Planner</p>
             </div>
           </div>
 
@@ -205,19 +188,19 @@ function App() {
             {conversationState.step === 'initial' && (
               <>
                 <Compass className="w-4 h-4 animate-pulse" />
-                <span>Start your travel adventure</span>
+                <span>Tell me what you love!</span>
               </>
             )}
             {conversationState.step === 'budget' && (
               <>
                 <Wallet className="w-4 h-4" />
-                <span>Budget-friendly or lavish?</span>
+                <span>What's your budget?</span>
               </>
             )}
-            {conversationState.step === 'destinations' && (
+            {conversationState.step === 'generating' && (
               <>
-                <MapPin className="w-4 h-4" />
-                <span>Pick your dream place</span>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>AI crafting your perfect trip...</span>
               </>
             )}
             {conversationState.step === 'itinerary' && (
@@ -240,14 +223,14 @@ function App() {
             <ChatInterface
               messages={messages}
               onSendMessage={handleSendMessage}
-              isLoading={isLoading}
+              isLoading={isLoading || isGeneratingPlan}
               conversationState={conversationState}
             />
           </div>
 
-          {/* Dynamic Right Panel */}
+          {/* Itinerary Display */}
           <div className="order-1 lg:order-2 overflow-hidden">
-            {renderRightPanel()}
+            <ItineraryDisplay travelPlan={currentPlan} />
           </div>
         </div>
       </div>
