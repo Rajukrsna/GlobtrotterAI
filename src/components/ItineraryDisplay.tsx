@@ -9,6 +9,7 @@ interface ItineraryDisplayProps {
 
 const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ travelPlan }) => {
   const dayVisualizationRef = useRef<any>(null);
+  const mapSectionRef = useRef<HTMLDivElement>(null);
 
   if (!travelPlan) {
     return (
@@ -54,9 +55,20 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ travelPlan }) => {
       .find(day => day.day === dayNumber)
       ?.activities.filter(activity => activity.coordinates) || [];
     
-    if (dayVisualizationRef.current && dayActivities.length > 0) {
-      dayVisualizationRef.current(dayActivities);
+    // Scroll to map section first
+    if (mapSectionRef.current) {
+      mapSectionRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
     }
+    
+    // Start visualization after a brief delay to allow scroll to complete
+    setTimeout(() => {
+      if (dayVisualizationRef.current && dayActivities.length > 0) {
+        dayVisualizationRef.current(dayActivities);
+      }
+    }, 800);
   };
 
   return (
@@ -78,7 +90,7 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ travelPlan }) => {
       </div>
 
       {/* Enhanced 3D Map */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      <div ref={mapSectionRef} className="bg-white rounded-xl shadow-lg p-6">
         <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
           <Navigation className="w-6 h-6 text-blue-600" />
           Interactive 3D Journey Map

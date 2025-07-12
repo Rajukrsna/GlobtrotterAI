@@ -244,26 +244,53 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
 
       setCurrentActivity(activity);
       
-      // Dynamic status messages
-      const statusMessages = [
-        `🌅 Starting your day at ${activity.title}...`,
-        `🎯 Exploring ${activity.title}...`,
-        `🍽️ Time for ${activity.title}...`,
-        `🌆 Ending the day at ${activity.title}...`
-      ];
+      // Dynamic status messages based on activity type and time
+      const getStatusMessage = (activity: Activity, index: number, total: number) => {
+        const timeOfDay = activity.time.toLowerCase();
+        const isFirst = index === 0;
+        const isLast = index === total - 1;
+        
+        if (isFirst) return `🌅 Starting your day at ${activity.title}...`;
+        if (isLast) return `🌆 Concluding your day at ${activity.title}...`;
+        
+        if (activity.type === 'restaurant') return `🍽️ Time for ${activity.title}...`;
+        if (activity.type === 'attraction') return `🎯 Exploring ${activity.title}...`;
+        if (activity.type === 'transport') return `🚗 Moving to ${activity.title}...`;
+        if (activity.type === 'accommodation') return `🏨 Checking into ${activity.title}...`;
+        
+        return `📍 Visiting ${activity.title}...`;
+      };
       
-      const currentStatus = statusMessages[Math.min(i, statusMessages.length - 1)];
+      const currentStatus = getStatusMessage(activity, i, dayActivities.length);
       setAnimationStatus(currentStatus);
 
-      // Voice narration for each activity
-      const voiceTexts = [
-        `Let's start your day at ${activity.title}. ${activity.description}`,
-        `Now we're exploring ${activity.title}. This ${activity.type} costs ${activity.cost} dollars.`,
-        `Time for ${activity.title}. ${activity.description}`,
-        `Ending your day at ${activity.title}. What a perfect way to conclude!`
-      ];
+      // Enhanced voice narration with variety and context
+      const getVoiceNarration = (activity: Activity, index: number, total: number) => {
+        const isFirst = index === 0;
+        const isLast = index === total - 1;
+        const timeOfDay = activity.time.toLowerCase();
+        
+        if (isFirst) {
+          return `Let's begin your adventure at ${activity.title}. ${activity.description.substring(0, 100)}`;
+        }
+        
+        if (isLast) {
+          return `We're ending this wonderful day at ${activity.title}. ${activity.description.substring(0, 80)} What a perfect conclusion to your journey!`;
+        }
+        
+        // Middle activities - vary the narration
+        const variations = [
+          `Next, we're visiting ${activity.title}. ${activity.description.substring(0, 90)}`,
+          `Now let's explore ${activity.title}. ${activity.description.substring(0, 85)}`,
+          `Our journey continues at ${activity.title}. ${activity.description.substring(0, 95)}`,
+          `Time to experience ${activity.title}. ${activity.description.substring(0, 80)}`
+        ];
+        
+        return variations[index % variations.length];
+      };
       
-      speak(voiceTexts[Math.min(i, voiceTexts.length - 1)], { rate: 0.9 });
+      const voiceText = getVoiceNarration(activity, i, dayActivities.length);
+      speak(voiceText, { rate: 0.85 });
 
       // Dramatic approach - start from high altitude
       await smoothCameraTransition(
@@ -307,9 +334,10 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
         cinematicInfoWindowRef.current.open(mapInstanceRef.current);
       }
 
-      // Hold the shot with reduced duration for smoother flow
+      // Hold the shot - longer for first and last activities
+      const holdDuration = (i === 0 || i === dayActivities.length - 1) ? 4000 : 3000;
       setAnimationStatus(`✨ Experiencing ${activity.title}...`);
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, holdDuration));
 
       // Close info window
       if (cinematicInfoWindowRef.current) {
@@ -319,7 +347,10 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
       // Transition shot - pull back and rotate
       if (i < dayActivities.length - 1) {
         setAnimationStatus('🎬 Transitioning to next location...');
-        speak("Moving to our next amazing destination.");
+        // Only speak transition for longer journeys
+        if (dayActivities.length > 3 && i < dayActivities.length - 2) {
+          speak("Moving to our next destination.", { rate: 1.0 });
+        }
         await smoothCameraTransition(
           activity.coordinates,
           14,
@@ -329,8 +360,8 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
         );
       }
 
-      // Brief pause between activities
-      await new Promise(resolve => setTimeout(resolve, 600));
+      // Brief pause between activities - shorter for smoother flow
+      await new Promise(resolve => setTimeout(resolve, 400));
     }
 
     // Grand finale - show the complete journey
