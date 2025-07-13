@@ -72,16 +72,16 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ travelPlan }) => {
   };
 
   return (
-    <div className="space-y-6 h-full overflow-y-auto">
+    <div className="space-y-4 lg:space-y-6 h-full overflow-y-auto">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white sticky top-0 z-10">
-        <h2 className="text-3xl font-bold mb-2">{travelPlan.destination}</h2>
-        <p className="text-blue-100 mb-4 text-lg">{travelPlan.duration} days of unforgettable experiences</p>
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg lg:rounded-xl p-4 lg:p-6 text-white sticky top-0 z-10">
+        <h2 className="text-xl lg:text-3xl font-bold mb-2">{travelPlan.destination}</h2>
+        <p className="text-blue-100 mb-3 lg:mb-4 text-sm lg:text-lg">{travelPlan.duration} days of unforgettable experiences</p>
         <div className="flex flex-wrap gap-2">
           {travelPlan.preferences.map((pref, index) => (
             <span
               key={index}
-              className="px-3 py-1 bg-white/20 rounded-full text-sm font-medium backdrop-blur-sm"
+              className="px-2 lg:px-3 py-1 bg-white/20 rounded-full text-xs lg:text-sm font-medium backdrop-blur-sm"
             >
               {pref}
             </span>
@@ -90,12 +90,13 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ travelPlan }) => {
       </div>
 
       {/* Enhanced 3D Map */}
-      <div ref={mapSectionRef} className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+      <div ref={mapSectionRef} className="bg-white rounded-lg lg:rounded-xl shadow-lg p-4 lg:p-6">
+        <h3 className="text-lg lg:text-xl font-semibold mb-3 lg:mb-4 flex items-center gap-2">
           <Navigation className="w-6 h-6 text-blue-600" />
-          Interactive 3D Journey Map
+          <span className="hidden sm:inline">Interactive 3D Journey Map</span>
+          <span className="sm:hidden">3D Map</span>
         </h3>
-        <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+        <div className="mb-3 lg:mb-4 p-3 lg:p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
           <p className="text-sm text-gray-700 mb-2 font-medium">
             🗺️ Explore your trip in stunning 3D! Click markers for details, drag to rotate the view.
           </p>
@@ -121,7 +122,7 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ travelPlan }) => {
         <Enhanced3DMap
           center={travelPlan.mapCenter}
           activities={allActivities}
-          className="h-96 w-full"
+          className="h-64 lg:h-96 w-full"
           onDayVisualization={(animateFunction) => {
             dayVisualizationRef.current = animateFunction;
           }}
@@ -129,53 +130,53 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ travelPlan }) => {
       </div>
 
       {/* Cost Overview */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+      <div className="bg-white rounded-lg lg:rounded-xl shadow-lg p-4 lg:p-6">
+        <h3 className="text-lg lg:text-xl font-semibold mb-4 lg:mb-6 flex items-center gap-2">
           <DollarSign className="w-6 h-6 text-green-600" />
           Investment Breakdown
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-4 lg:mb-6">
           <div className="text-center p-4 bg-purple-50 rounded-lg">
-            <div className="text-3xl font-bold text-purple-600">${travelPlan.costBreakdown.accommodation.toLocaleString()}</div>
+            <div className="text-xl lg:text-3xl font-bold text-purple-600">${travelPlan.costBreakdown.accommodation.toLocaleString()}</div>
             <div className="text-sm text-gray-600 mt-1">Accommodation</div>
           </div>
           <div className="text-center p-4 bg-orange-50 rounded-lg">
-            <div className="text-3xl font-bold text-orange-600">${travelPlan.costBreakdown.food.toLocaleString()}</div>
+            <div className="text-xl lg:text-3xl font-bold text-orange-600">${travelPlan.costBreakdown.food.toLocaleString()}</div>
             <div className="text-sm text-gray-600 mt-1">Dining</div>
           </div>
           <div className="text-center p-4 bg-green-50 rounded-lg">
-            <div className="text-3xl font-bold text-green-600">${travelPlan.costBreakdown.transport.toLocaleString()}</div>
+            <div className="text-xl lg:text-3xl font-bold text-green-600">${travelPlan.costBreakdown.transport.toLocaleString()}</div>
             <div className="text-sm text-gray-600 mt-1">Transport</div>
           </div>
           <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <div className="text-3xl font-bold text-blue-600">${travelPlan.costBreakdown.activities.toLocaleString()}</div>
+            <div className="text-xl lg:text-3xl font-bold text-blue-600">${travelPlan.costBreakdown.activities.toLocaleString()}</div>
             <div className="text-sm text-gray-600 mt-1">Experiences</div>
           </div>
         </div>
-        <div className="border-t pt-6">
-          <div className="text-center p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
-            <div className="text-4xl font-bold text-gray-800">${travelPlan.costBreakdown.total.toLocaleString()}</div>
-            <div className="text-lg text-gray-600 mt-1">Total Trip Investment</div>
+        <div className="border-t pt-4 lg:pt-6">
+          <div className="text-center p-4 lg:p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+            <div className="text-2xl lg:text-4xl font-bold text-gray-800">${travelPlan.costBreakdown.total.toLocaleString()}</div>
+            <div className="text-base lg:text-lg text-gray-600 mt-1">Total Trip Investment</div>
             <div className="text-sm text-gray-500 mt-2">All expenses included</div>
           </div>
         </div>
       </div>
 
       {/* Detailed Itinerary with Animation Buttons */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+      <div className="bg-white rounded-lg lg:rounded-xl shadow-lg p-4 lg:p-6">
+        <h3 className="text-lg lg:text-xl font-semibold mb-4 lg:mb-6 flex items-center gap-2">
           <Calendar className="w-6 h-6 text-blue-600" />
           Your Daily Adventure
         </h3>
-        <div className="space-y-8">
+        <div className="space-y-6 lg:space-y-8">
           {travelPlan.itinerary.map((day) => (
             <div key={day.day} className="relative">
               {/* Day Header with Visualization Button */}
-              <div className="flex items-center justify-between mb-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 lg:mb-6 p-3 lg:p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg gap-3 sm:gap-0">
                 <div className="flex-1">
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                     <div>
-                      <h4 className="text-2xl font-bold text-gray-800">
+                      <h4 className="text-xl lg:text-2xl font-bold text-gray-800">
                         Day {day.day}
                       </h4>
                       <div className="text-sm text-gray-600 mt-1">
@@ -191,15 +192,18 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ travelPlan }) => {
                     {/* Animated Visualization Button */}
                     <button
                       onClick={() => handleDayVisualization(day.day)}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                      className="flex items-center gap-2 px-3 lg:px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl text-sm lg:text-base"
                     >
                       <Play className="w-4 h-4" />
-                      <span className="font-medium">Visualize Day {day.day}</span>
+                      <span className="font-medium">
+                        <span className="hidden sm:inline">Visualize Day {day.day}</span>
+                        <span className="sm:hidden">View Day {day.day}</span>
+                      </span>
                     </button>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-green-600">
+                <div className="text-right sm:text-right">
+                  <div className="text-xl lg:text-2xl font-bold text-green-600">
                     ${day.totalCost.toLocaleString()}
                   </div>
                   <div className="text-sm text-gray-600">Day Total</div>
@@ -207,29 +211,29 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ travelPlan }) => {
               </div>
               
               {/* Activities */}
-              <div className="space-y-4 ml-4 border-l-4 border-blue-200 pl-6">
+              <div className="space-y-3 lg:space-y-4 ml-2 lg:ml-4 border-l-4 border-blue-200 pl-3 lg:pl-6">
                 {day.activities.map((activity) => (
                   <div
                     key={activity.id}
-                    className="bg-gray-50 rounded-xl p-6 hover:bg-gray-100 transition-all duration-300 hover:shadow-md"
+                    className="bg-gray-50 rounded-lg lg:rounded-xl p-4 lg:p-6 hover:bg-gray-100 transition-all duration-300 hover:shadow-md"
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-3 lg:gap-0">
                       <div className="flex-1">
-                        <div className="flex items-center gap-4 mb-3">
-                          <span className="text-3xl">{getActivityIcon(activity.type)}</span>
-                          <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 lg:gap-4 mb-2 lg:mb-3">
+                          <span className="text-2xl lg:text-3xl">{getActivityIcon(activity.type)}</span>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                             <div className="flex items-center gap-2 text-blue-600">
                               <Clock className="w-4 h-4" />
-                              <span className="font-semibold">{activity.time}</span>
+                              <span className="font-semibold text-sm lg:text-base">{activity.time}</span>
                             </div>
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getActivityColor(activity.type)}`}>
+                            <span className={`px-2 lg:px-3 py-1 rounded-full text-xs font-medium border ${getActivityColor(activity.type)}`}>
                               {activity.type.toUpperCase()}
                             </span>
                           </div>
                         </div>
-                        <h5 className="font-bold text-xl text-gray-800 mb-2">{activity.title}</h5>
-                        <p className="text-gray-600 mb-4 leading-relaxed">{activity.description}</p>
-                        <div className="flex items-center gap-6 text-sm text-gray-500">
+                        <h5 className="font-bold text-lg lg:text-xl text-gray-800 mb-2">{activity.title}</h5>
+                        <p className="text-gray-600 mb-3 lg:mb-4 leading-relaxed text-sm lg:text-base">{activity.description}</p>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-gray-500">
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4" />
                             <span>{activity.location}</span>
@@ -242,8 +246,8 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ travelPlan }) => {
                           )}
                         </div>
                       </div>
-                      <div className="text-right ml-4">
-                        <div className="text-2xl font-bold text-green-600">
+                      <div className="text-right lg:ml-4">
+                        <div className="text-xl lg:text-2xl font-bold text-green-600">
                           ${activity.cost.toLocaleString()}
                         </div>
                         <div className="text-sm text-gray-500">Cost</div>

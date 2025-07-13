@@ -2,7 +2,7 @@ import  { useState } from 'react';
 import ChatInterface from './components/ChatInterface';
 import ItineraryDisplay from './components/ItineraryDisplay';
 import { Message, TravelPlan, ConversationState } from './types';
-import { Globe, MapPin, Wallet, Compass, Loader2 } from "lucide-react";
+import { Globe, MapPin, Wallet, Compass, Loader2, MessageSquare, X } from "lucide-react";
 import axios from 'axios';
 
 function App() {
@@ -13,6 +13,7 @@ function App() {
     step: 'initial'
   });
   const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
+  const [isChatOpenOnMobile, setIsChatOpenOnMobile] = useState(false);
 
   const simulateAIResponse = async (userMessage: string, currentState: ConversationState): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 800));
@@ -177,14 +178,17 @@ function App() {
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center shadow-md">
               <Globe className="w-6 h-6 text-white" />
             </div>
-            <div>
+            <div className="hidden sm:block">
               <h1 className="text-2xl font-semibold tracking-wide">Globetrotter AI</h1>
               <p className="text-xs text-white/80">AI-Powered Taste-Based Travel Planner</p>
             </div>
+            <div className="sm:hidden">
+              <h1 className="text-xl font-semibold tracking-wide">Globetrotter AI</h1>
+            </div>
           </div>
 
-          {/* Right section */}
-          <div className="flex items-center gap-2 text-sm bg-white/10 px-4 py-1.5 rounded-full shadow-sm">
+          {/* Right section - Desktop */}
+          <div className="hidden lg:flex items-center gap-2 text-sm bg-white/10 px-4 py-1.5 rounded-full shadow-sm">
             {conversationState.step === 'initial' && (
               <>
                 <Compass className="w-4 h-4 animate-pulse" />
@@ -205,21 +209,60 @@ function App() {
             )}
             {conversationState.step === 'itinerary' && (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Building your smart itinerary...</span>
+                <MapPin className="w-4 h-4" />
+                <span>Your journey is ready!</span>
               </>
             )}
           </div>
+
+          {/* Mobile Chat Button */}
+          <button
+            onClick={() => setIsChatOpenOnMobile(true)}
+            className="lg:hidden flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition-all shadow-sm"
+          >
+            <MessageSquare className="w-5 h-5" />
+            <span className="text-sm font-medium">Chat</span>
+            {messages.length > 0 && (
+              <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {messages.filter(m => m.role === 'user').length}
+              </span>
+            )}
+          </button>
 
         </div>
       </div>
     </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[calc(100vh-12rem)]">
-          {/* Chat Interface */}
-          <div className="order-2 lg:order-1">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 min-h-[calc(100vh-8rem)] lg:h-[calc(100vh-12rem)]">
+          
+          {/* Itinerary Display - Always visible, priority on mobile */}
+          <div className="order-1 lg:order-2 overflow-hidden">
+            <ItineraryDisplay travelPlan={currentPlan} />
+          </div>
+
+          {/* Chat Interface - Desktop: sidebar, Mobile: overlay */}
+          <div className={`
+            lg:order-1 lg:relative lg:block
+            ${isChatOpenOnMobile ? 'fixed inset-0 z-50 bg-white' : 'hidden lg:block'}
+          `}>
+            {/* Mobile Chat Header */}
+            <div className="lg:hidden bg-gradient-to-r from-emerald-500 via-sky-500 to-indigo-500 text-white p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MessageSquare className="w-6 h-6" />
+                <h2 className="text-lg font-semibold">AI Travel Assistant</h2>
+              </div>
+              <button
+                onClick={() => setIsChatOpenOnMobile(false)}
+                className="p-2 hover:bg-white/20 rounded-full transition-all"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Chat Interface Component */}
+            <div className="h-full lg:h-auto">
             <ChatInterface
               messages={messages}
               onSendMessage={handleSendMessage}
@@ -227,13 +270,18 @@ function App() {
               conversationState={conversationState}
             />
           </div>
-
-          {/* Itinerary Display */}
-          <div className="order-1 lg:order-2 overflow-hidden">
-            <ItineraryDisplay travelPlan={currentPlan} />
           </div>
+
         </div>
       </div>
+
+      {/* Mobile Chat Backdrop */}
+      {isChatOpenOnMobile && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsChatOpenOnMobile(false)}
+        />
+      )}
     </div>
   );
 }
