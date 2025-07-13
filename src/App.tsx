@@ -245,7 +245,7 @@ function App() {
           {/* Chat Interface - Desktop: sidebar, Mobile: overlay */}
           <div className={`
             lg:order-1 lg:relative lg:block
-            ${isChatOpenOnMobile ? 'fixed inset-0 z-50 bg-white' : 'hidden lg:block'}
+            ${isChatOpenOnMobile ? 'fixed inset-0 z-50 bg-white flex flex-col' : 'hidden lg:block'}
           `}>
             {/* Mobile Chat Header */}
             <div className="lg:hidden bg-gradient-to-r from-emerald-500 via-sky-500 to-indigo-500 text-white p-4 flex items-center justify-between">
@@ -262,7 +262,7 @@ function App() {
             </div>
 
             {/* Chat Interface Component */}
-            <div className="h-full lg:h-auto">
+            <div className="flex-1 lg:h-auto">
             <ChatInterface
               messages={messages}
               onSendMessage={handleSendMessage}
