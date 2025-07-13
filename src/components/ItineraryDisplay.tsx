@@ -70,9 +70,8 @@ const ItineraryDisplay: React.FC<ItineraryDisplayProps> = ({ travelPlan }) => {
   );
 
   const handleDayVisualization = (dayNumber: number) => {
-    const dayActivities = travelPlan.itinerary?
-      .find(day => day.day === dayNumber)
-      ?.activities?.filter(activity => activity.coordinates) || [];
+    const foundDay = travelPlan.itinerary?.find(day => day.day === dayNumber);
+    const dayActivities = foundDay?.activities?.filter(activity => activity.coordinates) || [];
     
     // Scroll to map section first
     if (mapSectionRef.current) {
