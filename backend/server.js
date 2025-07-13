@@ -31,6 +31,9 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/travel-plan
 app.use(express.json());    
 app.use(express.urlencoded({ extended: true }));
 
+app.get('/', (req, res) => {
+  res.send('🌍 GlobetrotterAI backend is running!');
+});
 // Health check endpoint
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', message: 'Travel AI API is running' });
