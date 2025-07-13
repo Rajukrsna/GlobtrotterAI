@@ -17,11 +17,48 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const cinematicInfoWindowRef = useRef<any>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [animationStatus, setAnimationStatus] = useState('');
   const [currentActivity, setCurrentActivity] = useState<Activity | null>(null);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
   const animationRef = useRef<any>(null);
+  const speechRef = useRef<any>(null);
+
+  // Voice guide utility function
+  const speak = (text: string, options: { rate?: number; pitch?: number; volume?: number } = {}) => {
+    if (!voiceEnabled || !window.speechSynthesis) return;
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = options.rate || 0.9;
+    utterance.pitch = options.pitch || 1.1;
+    utterance.volume = options.volume || 0.8;
+    
+    // Use a pleasant voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(voice => 
+      voice.name.includes('Google') || 
+      voice.name.includes('Microsoft') ||
+      voice.lang.startsWith('en')
+    );
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+
+    speechRef.current = utterance;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Stop voice guide
+  const stopSpeech = () => {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  };
 
   // Check if Google Maps is loaded
   useEffect(() => {
@@ -62,6 +99,11 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
 
     mapInstanceRef.current = new window.google.maps.Map(mapRef.current, mapOptions);
 
+    // Create reusable cinematic info window
+    cinematicInfoWindowRef.current = new window.google.maps.InfoWindow({
+      pixelOffset: new window.google.maps.Size(0, -10)
+    });
+
     // Add smooth camera animation
     setTimeout(() => {
       if (mapInstanceRef.current) {
@@ -72,7 +114,7 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
 
   }, [isLoaded, center]);
 
-  // Smooth camera transition utility
+  // Optimized smooth camera transition utility
   const smoothCameraTransition = (targetPosition: any, zoom: number, tilt: number, heading: number, duration: number = 2000) => {
     return new Promise<void>((resolve) => {
       const startPosition = mapInstanceRef.current.getCenter();
@@ -80,25 +122,29 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
       const startTilt = mapInstanceRef.current.getTilt();
       const startHeading = mapInstanceRef.current.getHeading();
       
-      const startTime = Date.now();
+      const startTime = performance.now();
       
-      const animate = () => {
-        const elapsed = Date.now() - startTime;
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
         
-        const easeInOutCubic = (t: number) => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
-        const easedProgress = easeInOutCubic(progress);
+        // Smoother easing function
+        const easeInOutQuart = (t: number) => t < 0.5 ? 8 * t * t * t * t : 1 - 8 * (--t) * t * t * t;
+        const easedProgress = easeInOutQuart(progress);
         
         const lat = startPosition.lat() + (targetPosition.lat - startPosition.lat()) * easedProgress;
         const lng = startPosition.lng() + (targetPosition.lng - startPosition.lng()) * easedProgress;
-              const currentZoom = startZoom + (zoom - startZoom) * easedProgress;
+        const currentZoom = startZoom + (zoom - startZoom) * easedProgress;
         const currentTilt = startTilt + (tilt - startTilt) * easedProgress;
         const currentHeading = startHeading + (heading - startHeading) * easedProgress;
         
-        mapInstanceRef.current.setCenter({ lat, lng });
-        mapInstanceRef.current.setZoom(currentZoom);
-        mapInstanceRef.current.setTilt(currentTilt);
-        mapInstanceRef.current.setHeading(currentHeading);
+        // Batch map updates to reduce redraws
+        mapInstanceRef.current.setOptions({
+          center: { lat, lng },
+          zoom: currentZoom,
+          tilt: currentTilt,
+          heading: currentHeading
+        });
         
         if (progress < 1) {
           requestAnimationFrame(animate);
@@ -107,8 +153,44 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
         }
       };
       
-      animate();
+      requestAnimationFrame(animate);
     });
+  };
+
+  // Optimized cinematic info window content
+  const createCinematicContent = (activity: Activity) => {
+    return `
+      <div class="relative p-4 max-w-xs bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white rounded-xl shadow-xl overflow-hidden">
+        <div class="relative z-10">
+          <div class="flex items-center gap-2 mb-3">
+            <div class="text-2xl">${getActivityEmoji(activity.type)}</div>
+            <div>
+              <div class="text-xs bg-white/30 backdrop-blur-sm px-2 py-1 rounded-full font-medium">
+                ${activity.time} • ${activity.type.toUpperCase()}
+              </div>
+              ${activity.rating ? `
+                <div class="flex items-center gap-1 mt-1">
+                  <span class="text-yellow-300 text-xs">★</span>
+                  <span class="text-xs text-yellow-200">${activity.rating}</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+          
+          <h3 class="font-bold text-lg mb-2 leading-tight">${activity.title}</h3>
+          <p class="text-xs text-blue-100 mb-3 leading-relaxed">${activity.description}</p>
+          
+          <div class="flex items-center justify-between pt-2 border-t border-white/20">
+            <div class="text-xs text-blue-200">
+              📍 ${activity.location}
+            </div>
+            <div class="text-right">
+              <div class="text-lg font-bold text-yellow-300">$${activity.cost}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   };
 
   const animateDayJourney = async (dayActivities: Activity[]) => {
@@ -117,19 +199,29 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
     setIsAnimating(true);
     setAnimationStatus('🎬 Starting your cinematic journey...');
     
+    // Voice introduction
+    speak("Welcome to your personalized travel journey! Let's explore your day together.", { rate: 0.8 });
+    
     // Clear any existing animation
     if (animationRef.current) {
       clearTimeout(animationRef.current);
     }
 
-    // Hide all markers and info windows
+    // Hide all markers and close info windows
     markersRef.current.forEach(marker => {
       marker.setVisible(false);
       if (marker.infoWindow) marker.infoWindow.close();
     });
 
+    // Close cinematic info window
+    if (cinematicInfoWindowRef.current) {
+      cinematicInfoWindowRef.current.close();
+    }
+
     // Opening shot - aerial overview
     setAnimationStatus('🚁 Taking off for an aerial view...');
+    speak("Taking off for a beautiful aerial view of your destination.");
+    
     const bounds = new window.google.maps.LatLngBounds();
     dayActivities.forEach(activity => {
       if (activity.coordinates) bounds.extend(activity.coordinates);
@@ -140,7 +232,7 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
       12,
       75, // High tilt for dramatic aerial view
       0,
-      3000
+      2500
     );
     
     await new Promise(resolve => setTimeout(resolve, 1500));
@@ -152,15 +244,53 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
 
       setCurrentActivity(activity);
       
-      // Dynamic status messages
-      const statusMessages = [
-        `🌅 Starting your day at ${activity.title}...`,
-        `🎯 Exploring ${activity.title}...`,
-        `🍽️ Time for ${activity.title}...`,
-        `🌆 Ending the day at ${activity.title}...`
-      ];
+      // Dynamic status messages based on activity type and time
+      const getStatusMessage = (activity: Activity, index: number, total: number) => {
+        //const timeOfDay = activity.time.toLowerCase();
+        const isFirst = index === 0;
+        const isLast = index === total - 1;
+        
+        if (isFirst) return `🌅 Starting your day at ${activity.title}...`;
+        if (isLast) return `🌆 Concluding your day at ${activity.title}...`;
+        
+        if (activity.type === 'restaurant') return `🍽️ Time for ${activity.title}...`;
+        if (activity.type === 'attraction') return `🎯 Exploring ${activity.title}...`;
+        if (activity.type === 'transport') return `🚗 Moving to ${activity.title}...`;
+        if (activity.type === 'accommodation') return `🏨 Checking into ${activity.title}...`;
+        
+        return `📍 Visiting ${activity.title}...`;
+      };
       
-      setAnimationStatus(statusMessages[Math.min(i, statusMessages.length - 1)]);
+      const currentStatus = getStatusMessage(activity, i, dayActivities.length);
+      setAnimationStatus(currentStatus);
+
+      // Enhanced voice narration with variety and context
+      const getVoiceNarration = (activity: Activity, index: number, total: number) => {
+        const isFirst = index === 0;
+        const isLast = index === total - 1;
+       // const timeOfDay = activity.time.toLowerCase();
+        
+        if (isFirst) {
+          return `Let's begin your adventure at ${activity.title}. ${activity.description.substring(0, 100)}`;
+        }
+        
+        if (isLast) {
+          return `We're ending this wonderful day at ${activity.title}. ${activity.description.substring(0, 80)} What a perfect conclusion to your journey!`;
+        }
+        
+        // Middle activities - vary the narration
+        const variations = [
+          `Next, we're visiting ${activity.title}. ${activity.description.substring(0, 90)}`,
+          `Now let's explore ${activity.title}. ${activity.description.substring(0, 85)}`,
+          `Our journey continues at ${activity.title}. ${activity.description.substring(0, 95)}`,
+          `Time to experience ${activity.title}. ${activity.description.substring(0, 80)}`
+        ];
+        
+        return variations[index % variations.length];
+      };
+      
+      const voiceText = getVoiceNarration(activity, i, dayActivities.length);
+      speak(voiceText, { rate: 0.85 });
 
       // Dramatic approach - start from high altitude
       await smoothCameraTransition(
@@ -168,7 +298,7 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
         10, // Start high
         85, // Very steep angle
         (i * 90) % 360, // Rotating perspective
-        2000
+        1800
       );
 
       setAnimationStatus(`Diving into ${activity.title}...`);
@@ -177,9 +307,10 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
         18, 
         45, 
         (i * 90 + 45) % 360,
-        2500
+        2000
       );
 
+      // Show activity marker with optimized animation
       const activityMarker = markersRef.current.find(marker => 
         Math.abs(marker.getPosition().lat() - activity.coordinates!.lat) < 0.0001 &&
         Math.abs(marker.getPosition().lng() - activity.coordinates!.lng) < 0.0001
@@ -189,89 +320,55 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
         activityMarker.setVisible(true);
         activityMarker.setAnimation(window.google.maps.Animation.DROP);
         
-        // Bounce effect
+        // Optimized bounce effect
         setTimeout(() => {
           activityMarker.setAnimation(window.google.maps.Animation.BOUNCE);
-          setTimeout(() => activityMarker.setAnimation(null), 3000);
-        }, 500);
+          setTimeout(() => activityMarker.setAnimation(null), 2000);
+        }, 300);
       }
 
-      // Create cinematic info window
-      const cinematicInfo = new window.google.maps.InfoWindow({
-        content: `
-          <div class="relative p-6 max-w-sm bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 text-white rounded-2xl shadow-2xl overflow-hidden">
-            <!-- Animated background -->
-            <div class="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 animate-pulse"></div>
-            
-            <!-- Content -->
-            <div class="relative z-10">
-              <div class="flex items-center gap-3 mb-4">
-                <div class="text-4xl animate-bounce">${getActivityEmoji(activity.type)}</div>
-                <div>
-                  <div class="text-xs bg-white/30 backdrop-blur-sm px-3 py-1 rounded-full font-medium">
-                    ${activity.time} • ${activity.type.toUpperCase()}
-                  </div>
-                  ${activity.rating ? `
-                    <div class="flex items-center gap-1 mt-1">
-                      <span class="text-yellow-300 text-sm">★</span>
-                      <span class="text-xs text-yellow-200">${activity.rating} rating</span>
-                    </div>
-                  ` : ''}
-                </div>
-              </div>
-              
-              <h3 class="font-bold text-xl mb-3 leading-tight">${activity.title}</h3>
-              <p class="text-sm text-blue-100 mb-4 leading-relaxed">${activity.description}</p>
-              
-              <div class="flex items-center justify-between pt-3 border-t border-white/20">
-                <div class="text-xs text-blue-200">
-                  📍 ${activity.location}
-                </div>
-                <div class="text-right">
-                  <div class="text-2xl font-bold text-yellow-300">$${activity.cost}</div>
-                  <div class="text-xs text-yellow-200">Cost</div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- Decorative elements -->
-            <div class="absolute top-2 right-2 w-20 h-20 bg-white/10 rounded-full blur-xl"></div>
-            <div class="absolute bottom-2 left-2 w-16 h-16 bg-pink-400/20 rounded-full blur-lg"></div>
-          </div>
-        `,
-        position: activity.coordinates,
-        pixelOffset: new window.google.maps.Size(0, -10)
-      });
+      // Update cinematic info window content and position
+      if (cinematicInfoWindowRef.current) {
+        cinematicInfoWindowRef.current.setContent(createCinematicContent(activity));
+        cinematicInfoWindowRef.current.setPosition(activity.coordinates);
+        cinematicInfoWindowRef.current.open(mapInstanceRef.current);
+      }
 
-      cinematicInfo.open(mapInstanceRef.current);
-
-      // Hold the shot
+      // Hold the shot - longer for first and last activities
+      const holdDuration = (i === 0 || i === dayActivities.length - 1) ? 4000 : 3000;
       setAnimationStatus(`✨ Experiencing ${activity.title}...`);
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      await new Promise(resolve => setTimeout(resolve, holdDuration));
 
-      // Close info window with fade effect
-      cinematicInfo.close();
+      // Close info window
+      if (cinematicInfoWindowRef.current) {
+        cinematicInfoWindowRef.current.close();
+      }
 
       // Transition shot - pull back and rotate
       if (i < dayActivities.length - 1) {
         setAnimationStatus('🎬 Transitioning to next location...');
+        // Only speak transition for longer journeys
+        if (dayActivities.length > 3 && i < dayActivities.length - 2) {
+          speak("Moving to our next destination.", { rate: 1.0 });
+        }
         await smoothCameraTransition(
           activity.coordinates,
           14,
           65,
           (i * 90 + 180) % 360,
-          1500
+          1200
         );
       }
 
-      // Brief pause between activities
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Brief pause between activities - shorter for smoother flow
+      await new Promise(resolve => setTimeout(resolve, 400));
     }
 
     // Grand finale - show the complete journey
     setAnimationStatus('🎆 Revealing your complete journey...');
+    speak("Here's your complete journey mapped out beautifully. What an amazing day awaits you!");
     
-    // Create a path connecting all activities
+    // Create optimized path with requestAnimationFrame animation
     const pathCoordinates = dayActivities
       .filter(activity => activity.coordinates)
       .map(activity => activity.coordinates!);
@@ -299,19 +396,19 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
 
       journeyPath.setMap(mapInstanceRef.current);
       
-      // Animate the path
+      // Optimized path animation using requestAnimationFrame
       let offset = 0;
       const animatePath = () => {
+        if (!isAnimating) return;
+        
         offset = (offset + 2) % 100;
         const icons = journeyPath.get('icons');
         icons[0].offset = offset + '%';
         journeyPath.set('icons', icons);
         
-        if (isAnimating) {
-          setTimeout(animatePath, 100);
-        }
+        requestAnimationFrame(animatePath);
       };
-      animatePath();
+      requestAnimationFrame(animatePath);
     }
 
     // Final overview with all markers visible
@@ -320,7 +417,7 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
       13,
       55,
       360, // Full rotation
-      3000
+      2500
     );
 
     // Show all day's markers with staggered animation
@@ -335,13 +432,14 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
         setTimeout(() => {
           marker.setVisible(true);
           marker.setAnimation(window.google.maps.Animation.DROP);
-          setTimeout(() => marker.setAnimation(null), 1000);
-        }, i * 300);
+          setTimeout(() => marker.setAnimation(null), 800);
+        }, i * 200);
       }
     }
 
     setAnimationStatus('🎉 Journey complete! Your day awaits...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    speak("Your cinematic journey is complete! Get ready for an amazing adventure.", { rate: 0.8 });
+    await new Promise(resolve => setTimeout(resolve, 2500));
 
     setIsAnimating(false);
     setAnimationStatus('');
@@ -551,7 +649,7 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
         destination: activities[activities.length - 1].coordinates,
         waypoints: waypoints,
         travelMode: window.google.maps.TravelMode.DRIVING
-      }, (result, status) => {
+      }, (result: google.maps.DirectionsResult, status: google.maps.DirectionsStatus) => {
         if (status === 'OK') {
           directionsRenderer.setDirections(result);
         }
@@ -569,6 +667,16 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
       default: return '📍';
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopSpeech();
+      if (animationRef.current) {
+        clearTimeout(animationRef.current);
+      }
+    };
+  }, []);
 
   if (!isLoaded) {
     return (
@@ -589,6 +697,27 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
         className={`rounded-lg ${className}`}
         style={{ minHeight: '500px' }}
       />
+      
+      {/* Voice Control Toggle */}
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={() => {
+            setVoiceEnabled(!voiceEnabled);
+            if (!voiceEnabled) {
+              speak("Voice guide enabled. I'll narrate your journey!");
+            } else {
+              stopSpeech();
+            }
+          }}
+          className={`px-3 py-2 rounded-lg shadow-lg transition-all ${
+            voiceEnabled 
+              ? 'bg-green-500 text-white hover:bg-green-600' 
+              : 'bg-gray-500 text-white hover:bg-gray-600'
+          }`}
+        >
+          {voiceEnabled ? '🔊 Voice On' : '🔇 Voice Off'}
+        </button>
+      </div>
       
       {/* Cinematic Animation Status */}
       {isAnimating && (
@@ -644,6 +773,21 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
             <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/30 to-transparent"></div>
             <div className="absolute top-0 bottom-0 left-0 w-20 bg-gradient-to-r from-black/20 to-transparent"></div>
             <div className="absolute top-0 bottom-0 right-0 w-20 bg-gradient-to-l from-black/20 to-transparent"></div>
+          </div>
+
+          {/* Stop Animation Button */}
+          <div className="absolute top-4 left-4 z-20">
+            <button
+              onClick={() => {
+                setIsAnimating(false);
+                stopSpeech();
+                setAnimationStatus('');
+                setCurrentActivity(null);
+              }}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all shadow-lg"
+            >
+              ⏹️ Stop Tour
+            </button>
           </div>
         </div>
       )}

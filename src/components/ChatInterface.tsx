@@ -37,11 +37,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const getPlaceholder = () => {
     switch (conversationState.step) {
       case 'initial':
-        return "Describe your dream trip (e.g., 'I love mountains, want something peaceful')";
+        return "Tell me what you love! (e.g., 'I love BTS, Studio Ghibli, and ramen')";
       case 'budget':
         return "Enter your budget (e.g., '2000' or '$2000')";
-      case 'destinations':
-        return "Ask questions about the destinations or say 'show more options'";
+      case 'generating':
+        return "AI is working on your perfect trip...";
       case 'itinerary':
         return "Ask about your itinerary or request modifications";
       default:
@@ -51,7 +51,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
 
   const getBudgetSuggestions = () => {
     const suggestions = [
-      { label: 'Budget Trip', amount: 1000, icon: '💰' },
+      { label: 'Budget Trip', amount: 1500, icon: '💰' },
       { label: 'Mid-Range', amount: 2500, icon: '🏨' },
       { label: 'Luxury', amount: 5000, icon: '✨' },
       { label: 'Ultra Luxury', amount: 10000, icon: '👑' }
@@ -81,30 +81,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl shadow-lg overflow-hidden">
+    <div className="flex flex-col h-full bg-white lg:rounded-xl lg:shadow-lg overflow-hidden">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-md border-b px-6 py-4">
+      <div className="hidden lg:block bg-white/80 backdrop-blur-md border-b px-6 py-4">
   <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-3">
     <Bot className="w-6 h-6 text-purple-600" />
-    Travel Concierge AI
+    AI Travel Taste Expert
   </h2>
   <p className="text-sm text-gray-500 mt-1">
-    {conversationState.step === 'initial' && "Tell me about your dream escape..."}
+    {conversationState.step === 'initial' && "Tell me what you love and I'll craft your perfect trip..."}
     {conversationState.step === 'budget' && "What budget are you thinking?"}
-    {conversationState.step === 'destinations' && "Explore ideal locations."}
-    {conversationState.step === 'itinerary' && "Here’s your tailored plan!"}
+    {conversationState.step === 'generating' && "Analyzing your taste profile..."}
+    {conversationState.step === 'itinerary' && "Your taste-aligned itinerary is ready!"}
   </p>
 </div>
 
 
       {/* Messages */}
-     <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-br from-blue-50 to-white">
+     <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4 lg:space-y-6 bg-gradient-to-br from-blue-50 to-white">
   {messages.length === 0 && (
     <div className="text-center text-gray-500 mt-10">
       <Bot className="w-16 h-16 mx-auto mb-4 text-purple-400" />
       <p className="text-lg font-medium">Welcome to Globetrotter AI!</p>
-      <p className="text-sm mt-2 max-w-md mx-auto">
-        Describe what you’re looking for and let’s plan your perfect trip.
+      <p className="text-sm mt-2 max-w-md mx-auto px-4">
+        Tell me about your interests, hobbies, and what you love - I'll create a personalized travel experience just for you!
       </p>
     </div>
   )}
@@ -116,13 +116,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           <Bot className="w-4 h-4" />
         </div>
       )}
-      <div className={`max-w-md px-4 py-3 rounded-2xl shadow-md transition-all duration-300
+      <div className={`max-w-sm lg:max-w-md px-3 lg:px-4 py-2 lg:py-3 rounded-2xl shadow-md transition-all duration-300
         ${message.role === 'user' 
           ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white' 
           : 'bg-white/70 backdrop-blur border text-gray-800'
         }`}>
-        <p className="text-sm leading-relaxed">{message.content}</p>
-        <span className="text-xs opacity-60 mt-2 block">
+        <p className="text-xs lg:text-sm leading-relaxed">{message.content}</p>
+        <span className="text-xs opacity-60 mt-1 lg:mt-2 block">
           {message.timestamp.toLocaleTimeString()}
         </span>
       </div>
@@ -158,22 +158,22 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {conversationState.step === 'budget' && getBudgetSuggestions()}
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="bg-white border-t px-6 py-4">
+      <form onSubmit={handleSubmit} className={`bg-white border-t px-4 lg:px-6 py-3 lg:py-4 ${conversationState.step === 'generating' ? 'opacity-50' : ''}`}>
   <div className="flex items-center gap-3">
     <input
       type="text"
       value={input}
       onChange={(e) => setInput(e.target.value)}
       placeholder={getPlaceholder()}
-      className="flex-1 px-4 py-3 rounded-full border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm"
-      disabled={isLoading}
+      className="flex-1 px-3 lg:px-4 py-2 lg:py-3 rounded-full border border-gray-300 shadow-sm focus:ring-2 focus:ring-purple-500 focus:outline-none text-sm"
+      disabled={isLoading || conversationState.step === 'generating'}
     />
     <button
       type="submit"
-      disabled={!input.trim() || isLoading}
-      className="px-4 py-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md hover:opacity-90 transition"
+      disabled={!input.trim() || isLoading || conversationState.step === 'generating'}
+      className="px-3 lg:px-4 py-2 lg:py-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md hover:opacity-90 transition"
     >
-      <Send className="w-5 h-5" />
+      <Send className="w-4 lg:w-5 h-4 lg:h-5" />
     </button>
   </div>
 </form>

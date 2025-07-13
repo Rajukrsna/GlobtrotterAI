@@ -56,10 +56,9 @@ export interface Destination {
 }
 
 export interface ConversationState {
-  step: 'initial' | 'budget' | 'destinations' | 'itinerary';
+  step: 'initial' | 'budget' | 'generating' | 'itinerary';
   travelWish?: string;
   budget?: number;
-  selectedDestination?: Destination;
   userLocation?: { lat: number; lng: number };
 }
 
