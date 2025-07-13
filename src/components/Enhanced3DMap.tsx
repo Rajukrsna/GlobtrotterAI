@@ -247,6 +247,7 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
       // Dynamic status messages based on activity type and time
       const getStatusMessage = (activity: Activity, index: number, total: number) => {
         //const timeOfDay = activity.time.toLowerCase();
+
         const isFirst = index === 0;
         const isLast = index === total - 1;
         
@@ -269,7 +270,6 @@ const Enhanced3DMap: React.FC<Enhanced3DMapProps> = ({
         const isFirst = index === 0;
         const isLast = index === total - 1;
        // const timeOfDay = activity.time.toLowerCase();
-        
         if (isFirst) {
           return `Let's begin your adventure at ${activity.title}. ${activity.description.substring(0, 100)}`;
         }
