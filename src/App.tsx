@@ -4,6 +4,8 @@ import ItineraryDisplay from './components/ItineraryDisplay';
 import { Message, TravelPlan, ConversationState } from './types';
 import { Globe, MapPin, Wallet, Compass, Loader2, MessageSquare, X } from "lucide-react";
 import axios from 'axios';
+//import the backend url from .env
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000'; 
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -96,7 +98,7 @@ function App() {
     try {
       console.log('Generating travel plan for:', userMessage);
       
-      const response = await axios.post('http://localhost:3000/api/plan-trip', {
+      const response = await axios.post(`${BACKEND_URL}/api/plan-trip`, {
         message: userMessage,
         budget: budget
       });
