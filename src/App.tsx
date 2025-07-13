@@ -103,6 +103,16 @@ function App() {
 
       if (response.data.success) {
         const { travelPlan } = response.data;
+        console.log('Received travel plan from backend:', travelPlan);
+        console.log('Travel plan structure check:', {
+          hasDestination: !!travelPlan?.destination,
+          hasDuration: !!travelPlan?.duration,
+          hasItinerary: !!travelPlan?.itinerary,
+          itineraryLength: travelPlan?.itinerary?.length || 0,
+          hasCostBreakdown: !!travelPlan?.costBreakdown,
+          hasMapCenter: !!travelPlan?.mapCenter
+        });
+        
         setCurrentPlan(travelPlan);
         
         // Update conversation state to show itinerary
